@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { isMockMode } from "@/lib/data-mode";
+import { resolveApiDataAccess } from "@/lib/api-data-access";
 import { getMockKpis } from "@/lib/mock/time-tracking-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { DashboardKpiItem } from "@/lib/types/domain";
 
 function toStringMetric(value: number) {
@@ -11,18 +10,15 @@ function toStringMetric(value: number) {
 
 export async function GET() {
   try {
-    if (isMockMode()) {
+    const access = await resolveApiDataAccess();
+    if (access.kind === "unauthorized") {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (access.kind === "mock") {
       return NextResponse.json({ data: getMockKpis() });
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
+    const supabase = access.supabase;
 
     const [{ count: activeCount, error: activeError }, { count: flaggedCount, error: flaggedError }] =
       await Promise.all([
@@ -84,7 +80,7 @@ export async function GET() {
       {
         label: "Total Hours Today",
         value: toStringMetric(totalHours),
-        change: "UTC day aggregate",
+        change: "Today’s hours",
         tone: "success",
       },
     ];

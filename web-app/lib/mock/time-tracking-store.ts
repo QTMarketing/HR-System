@@ -1,13 +1,35 @@
 import {
   ActiveTimeEntry,
+  AuditLogRow,
   DashboardChartData,
   DashboardKpiItem,
+  EmployeeRosterData,
   EntryOption,
   HourMixData,
   HourMixReportData,
   HourMixReportEmployeeRow,
   HourMixReportStoreRow,
+  PolicyConfigRow,
+  TimesheetRow,
 } from "@/lib/types/domain";
+
+export type PolicyConfigNumericPatch = Partial<
+  Pick<
+    PolicyConfigRow,
+    | "overtimeDailyThreshold"
+    | "doubleTimeDailyThreshold"
+    | "overtimeWeeklyThreshold"
+    | "autoClockOutHours"
+    | "roundingMode"
+  >
+>;
+
+export type AuditLogFilters = {
+  from?: string;
+  to?: string;
+  entityName?: string;
+  action?: string;
+};
 
 type EventAction = "clock_in" | "clock_out" | "break_start" | "break_end" | "admin_manual";
 
@@ -55,6 +77,8 @@ const employees: EntryOption[] = [
 
 const now = new Date();
 const minutesAgo = (m: number) => new Date(now.getTime() - m * 60_000).toISOString();
+const daysAgo = (d: number, hours = 9) =>
+  new Date(now.getTime() - d * 86_400_000 - (now.getHours() - hours) * 3_600_000).toISOString();
 
 const shifts: InternalShift[] = [
   {
@@ -192,10 +216,51 @@ function findEmployeeCode(employeeId: string): string {
   return found ?? `EMP-${employeeId.slice(0, 4).toUpperCase()}`;
 }
 
+/** Mock store ↔ employee links (primary = default home store for roster badges). */
+const mockRosterAssignments: { storeIndex: number; employeeIndex: number; isPrimary: boolean }[] = [
+  { storeIndex: 0, employeeIndex: 0, isPrimary: true },
+  { storeIndex: 2, employeeIndex: 1, isPrimary: true },
+  { storeIndex: 1, employeeIndex: 1, isPrimary: false },
+  { storeIndex: 1, employeeIndex: 2, isPrimary: true },
+  { storeIndex: 3, employeeIndex: 3, isPrimary: true },
+  { storeIndex: 2, employeeIndex: 4, isPrimary: true },
+];
+
 export function getMockTimeEntryOptions() {
   return {
     employees,
     stores,
+  };
+}
+
+export function getMockEmployeeRoster(): EmployeeRosterData {
+  const byStore = stores.map((store, storeIndex) => {
+    const links = mockRosterAssignments.filter((link) => link.storeIndex === storeIndex);
+    const rosterEmployees = links
+      .map((link) => {
+        const emp = employees[link.employeeIndex]!;
+        return {
+          id: emp.id,
+          fullName: emp.label,
+          employeeCode: findEmployeeCode(emp.id),
+          status: "active" as const,
+          isPrimaryForStore: link.isPrimary,
+        };
+      })
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+    return {
+      storeId: store.id,
+      storeName: store.label,
+      employees: rosterEmployees,
+    };
+  });
+
+  const uniqueIds = new Set(mockRosterAssignments.map((link) => employees[link.employeeIndex]!.id));
+
+  return {
+    byStore,
+    uniqueEmployeeCount: uniqueIds.size,
   };
 }
 
@@ -229,13 +294,13 @@ export function getMockKpis(): DashboardKpiItem[] {
     .reduce((sum, shift) => sum + shift.regularHours + shift.otHours + shift.dtHours, 0);
 
   return [
-    { label: "Currently Clocked In", value: String(activeCount), change: "Live", tone: "primary" },
-    { label: "Pending Approvals", value: String(manualCount24h), change: "Manual events (24h)", tone: "warning" },
-    { label: "Flagged Short Entries", value: String(flaggedCount), change: "Needs review", tone: "accent" },
+    { label: "Currently Clocked In", value: String(activeCount), change: "Demo data", tone: "primary" },
+    { label: "Pending Approvals", value: String(manualCount24h), change: "Demo data", tone: "warning" },
+    { label: "Flagged Short Entries", value: String(flaggedCount), change: "Demo data", tone: "accent" },
     {
       label: "Total Hours Today",
       value: Intl.NumberFormat("en-US").format(Math.round(totalHours * 100) / 100),
-      change: "Mock aggregate",
+      change: "Demo data",
       tone: "success",
     },
   ];
@@ -421,4 +486,217 @@ export function applyMockClockEvent(input: {
   });
 
   return { eventId };
+}
+
+const mockTimesheetRows: TimesheetRow[] = [
+  {
+    id: "ts-mock-001",
+    employeeId: employees[3]!.id,
+    employeeName: employees[3]!.label,
+    employeeCode: "EMP-1088",
+    storeId: stores[3]!.id,
+    storeName: stores[3]!.label,
+    clockInAt: daysAgo(1, 8),
+    clockOutAt: daysAgo(1, 16),
+    status: "clocked_out",
+    regularHours: 7.5,
+    otHours: 0,
+    dtHours: 0,
+  },
+  {
+    id: "ts-mock-002",
+    employeeId: employees[0]!.id,
+    employeeName: employees[0]!.label,
+    employeeCode: "EMP-1007",
+    storeId: stores[0]!.id,
+    storeName: stores[0]!.label,
+    clockInAt: daysAgo(2, 9),
+    clockOutAt: daysAgo(2, 17),
+    status: "clocked_out",
+    regularHours: 7.25,
+    otHours: 0.25,
+    dtHours: 0,
+  },
+  {
+    id: "ts-mock-003",
+    employeeId: employees[1]!.id,
+    employeeName: employees[1]!.label,
+    employeeCode: "EMP-1023",
+    storeId: stores[2]!.id,
+    storeName: stores[2]!.label,
+    clockInAt: daysAgo(3, 8),
+    clockOutAt: daysAgo(3, 14),
+    status: "flagged",
+    regularHours: 5.75,
+    otHours: 0,
+    dtHours: 0,
+  },
+  {
+    id: "ts-mock-004",
+    employeeId: employees[2]!.id,
+    employeeName: employees[2]!.label,
+    employeeCode: "EMP-1040",
+    storeId: stores[1]!.id,
+    storeName: stores[1]!.label,
+    clockInAt: daysAgo(5, 7),
+    clockOutAt: daysAgo(5, 15),
+    status: "clocked_out",
+    regularHours: 7.5,
+    otHours: 0,
+    dtHours: 0,
+  },
+  {
+    id: "ts-mock-005",
+    employeeId: employees[4]!.id,
+    employeeName: employees[4]!.label,
+    employeeCode: "EMP-1069",
+    storeId: stores[2]!.id,
+    storeName: stores[2]!.label,
+    clockInAt: daysAgo(6, 10),
+    clockOutAt: daysAgo(6, 19),
+    status: "clocked_out",
+    regularHours: 8,
+    otHours: 1,
+    dtHours: 0,
+  },
+];
+
+const mockPayrollByEntryId = new Map<string, { at: string; byName: string }>();
+mockPayrollByEntryId.set("ts-mock-002", { at: daysAgo(1, 12), byName: "Dev Admin" });
+
+const mockPolicyPatchesById = new Map<string, PolicyConfigNumericPatch>();
+
+export function setMockPayrollApproval(entryId: string, approved: boolean, approverName: string) {
+  if (approved) {
+    mockPayrollByEntryId.set(entryId, { at: new Date().toISOString(), byName: approverName });
+  } else {
+    mockPayrollByEntryId.delete(entryId);
+  }
+}
+
+export function patchMockPolicyConfig(id: string, patch: PolicyConfigNumericPatch) {
+  mockPolicyPatchesById.set(id, { ...mockPolicyPatchesById.get(id), ...patch });
+}
+
+const mockAuditRows: AuditLogRow[] = [
+  {
+    id: "aud-mock-001",
+    createdAt: minutesAgo(22),
+    actorUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    actorName: "Dev Admin",
+    entityName: "time_events",
+    entityId: "e1111111-1111-4111-8111-111111111111",
+    action: "clock_in",
+    reasonCode: "MANUAL_ENTRY",
+    detail: `${employees[0]!.label} · ${stores[0]!.label}`,
+  },
+  {
+    id: "aud-mock-002",
+    createdAt: minutesAgo(55),
+    actorUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    actorName: "Dev Admin",
+    entityName: "time_events",
+    entityId: "e2222222-2222-4222-8222-222222222222",
+    action: "break_start",
+    reasonCode: "MANUAL_ENTRY",
+    detail: `${employees[2]!.label} · ${stores[1]!.label}`,
+  },
+  {
+    id: "aud-mock-003",
+    createdAt: minutesAgo(120),
+    actorUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    actorName: "Dev Admin",
+    entityName: "time_events",
+    entityId: "e3333333-3333-4333-8333-333333333333",
+    action: "admin_manual",
+    reasonCode: "MANUAL_ENTRY",
+    detail: `${employees[1]!.label} · correction note applied`,
+  },
+  {
+    id: "aud-mock-004",
+    createdAt: daysAgo(9, 15),
+    actorUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    actorName: "Dev Admin",
+    entityName: "users",
+    entityId: employees[2]!.id,
+    action: "profile_update",
+    reasonCode: null,
+    detail: "Role review",
+  },
+  {
+    id: "aud-mock-005",
+    createdAt: daysAgo(2, 11),
+    actorUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    actorName: "Dev Admin",
+    entityName: "time_events",
+    entityId: "e4444444-4444-4444-8444-444444444444",
+    action: "clock_out",
+    reasonCode: "MANUAL_ENTRY",
+    detail: `${employees[4]!.label} · ${stores[2]!.label}`,
+  },
+];
+
+export function getMockTimesheetRows(filters?: { storeId?: string; from?: string; to?: string }): TimesheetRow[] {
+  let rows = [...mockTimesheetRows];
+  if (filters?.storeId) {
+    rows = rows.filter((row) => row.storeId === filters.storeId);
+  }
+  if (filters?.from) {
+    const fromT = new Date(filters.from).getTime();
+    rows = rows.filter((row) => new Date(row.clockInAt).getTime() >= fromT);
+  }
+  if (filters?.to) {
+    const toT = new Date(filters.to).getTime() + 86_400_000;
+    rows = rows.filter((row) => new Date(row.clockInAt).getTime() < toT);
+  }
+  const merged = rows.map((row) => {
+    const p = mockPayrollByEntryId.get(row.id);
+    return {
+      ...row,
+      payrollApprovedAt: p?.at ?? null,
+      payrollApprovedByName: p?.byName ?? null,
+    };
+  });
+  return merged.sort((a, b) => (a.clockInAt < b.clockInAt ? 1 : -1));
+}
+
+export function getMockAuditLog(filters?: AuditLogFilters): AuditLogRow[] {
+  let rows = [...mockAuditRows];
+  if (filters?.from) {
+    const fromT = new Date(`${filters.from}T00:00:00.000Z`).getTime();
+    rows = rows.filter((row) => new Date(row.createdAt).getTime() >= fromT);
+  }
+  if (filters?.to) {
+    const end = new Date(`${filters.to}T00:00:00.000Z`);
+    end.setUTCDate(end.getUTCDate() + 1);
+    const toT = end.getTime();
+    rows = rows.filter((row) => new Date(row.createdAt).getTime() < toT);
+  }
+  if (filters?.entityName?.trim()) {
+    const q = filters.entityName.trim().toLowerCase();
+    rows = rows.filter((row) => row.entityName.toLowerCase().includes(q));
+  }
+  if (filters?.action?.trim()) {
+    const q = filters.action.trim().toLowerCase();
+    rows = rows.filter((row) => row.action.toLowerCase().includes(q));
+  }
+  return rows.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export function getMockPolicyConfigs(): PolicyConfigRow[] {
+  return stores.map((store) => {
+    const id = `pol-mock-${store.id.slice(0, 8)}`;
+    const base: PolicyConfigRow = {
+      id,
+      storeId: store.id,
+      storeName: store.label,
+      overtimeDailyThreshold: 8,
+      doubleTimeDailyThreshold: 12,
+      overtimeWeeklyThreshold: 40,
+      autoClockOutHours: 12,
+      roundingMode: "none",
+    };
+    const patch = mockPolicyPatchesById.get(id);
+    return patch ? { ...base, ...patch } : base;
+  });
 }

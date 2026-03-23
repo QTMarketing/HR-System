@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { isMockMode } from "@/lib/data-mode";
+import { resolveApiDataAccess } from "@/lib/api-data-access";
 import { getMockActivityFeed } from "@/lib/mock/time-tracking-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function eventLabel(eventType: string) {
   if (eventType === "clock_in") return "clocked in";
@@ -14,18 +13,15 @@ function eventLabel(eventType: string) {
 
 export async function GET() {
   try {
-    if (isMockMode()) {
+    const access = await resolveApiDataAccess();
+    if (access.kind === "unauthorized") {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (access.kind === "mock") {
       return NextResponse.json({ data: getMockActivityFeed() });
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
+    const supabase = access.supabase;
 
     const { data: events, error } = await supabase
       .from("time_events")

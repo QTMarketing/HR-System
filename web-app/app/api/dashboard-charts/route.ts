@@ -1,26 +1,22 @@
 import { NextResponse } from "next/server";
 
-import { isMockMode } from "@/lib/data-mode";
+import { resolveApiDataAccess } from "@/lib/api-data-access";
 import { getMockDashboardCharts } from "@/lib/mock/time-tracking-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { DashboardChartData } from "@/lib/types/domain";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export async function GET() {
   try {
-    if (isMockMode()) {
+    const access = await resolveApiDataAccess();
+    if (access.kind === "unauthorized") {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (access.kind === "mock") {
       return NextResponse.json({ data: getMockDashboardCharts() });
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
+    const supabase = access.supabase;
 
     const start = new Date();
     start.setDate(start.getDate() - 6);

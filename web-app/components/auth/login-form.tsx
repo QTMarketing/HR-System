@@ -48,7 +48,7 @@ export function LoginForm() {
         <Input type="password" required value={password} onChange={(event) => setPassword(event.target.value)} />
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Signing In..." : "Sign In"}
+        {isSubmitting ? "Signing in…" : "Sign In"}
       </Button>
     </form>
   );

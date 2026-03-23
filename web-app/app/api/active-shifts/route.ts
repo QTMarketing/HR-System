@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { isMockMode } from "@/lib/data-mode";
+import { resolveApiDataAccess } from "@/lib/api-data-access";
 import { getMockActiveShifts } from "@/lib/mock/time-tracking-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ActiveTimeEntry } from "@/lib/types/domain";
 
 function mapStatus(status: string): ActiveTimeEntry["status"] {
@@ -14,19 +13,16 @@ function mapStatus(status: string): ActiveTimeEntry["status"] {
 
 export async function GET() {
   try {
-    if (isMockMode()) {
+    const access = await resolveApiDataAccess();
+    if (access.kind === "unauthorized") {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (access.kind === "mock") {
       const rows = getMockActiveShifts();
       return NextResponse.json({ data: rows, count: rows.length });
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
+    const supabase = access.supabase;
 
     const { data, error } = await supabase
       .from("active_time_entries_view")

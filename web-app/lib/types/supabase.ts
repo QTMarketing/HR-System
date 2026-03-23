@@ -73,6 +73,36 @@ export type Database = {
         }>;
         Relationships: [];
       };
+      employee_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          employee_code: string;
+          pin_hash: string | null;
+          hourly_rate: number | null;
+          overtime_eligible: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          employee_code: string;
+          pin_hash?: string | null;
+          hourly_rate?: number | null;
+          overtime_eligible?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          employee_code: string;
+          pin_hash: string | null;
+          hourly_rate: number | null;
+          overtime_eligible: boolean;
+          updated_at: string;
+        }>;
+        Relationships: [];
+      };
       time_entries: {
         Row: {
           id: string;
@@ -84,6 +114,8 @@ export type Database = {
           regular_hours: number;
           ot_hours: number;
           dt_hours: number;
+          payroll_approved_at: string | null;
+          payroll_approved_by: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -97,6 +129,8 @@ export type Database = {
           regular_hours?: number;
           ot_hours?: number;
           dt_hours?: number;
+          payroll_approved_at?: string | null;
+          payroll_approved_by?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -106,6 +140,8 @@ export type Database = {
           regular_hours: number;
           ot_hours: number;
           dt_hours: number;
+          payroll_approved_at: string | null;
+          payroll_approved_by: string | null;
           updated_at: string;
         }>;
         Relationships: [];
@@ -129,6 +165,71 @@ export type Database = {
         };
         Update: Partial<{
           occurred_at: string;
+        }>;
+        Relationships: [];
+      };
+      audit_logs: {
+        Row: {
+          id: string;
+          actor_user_id: string;
+          entity_name: string;
+          entity_id: string | null;
+          action: string;
+          old_value: Json | null;
+          new_value: Json | null;
+          reason_code: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_user_id: string;
+          entity_name: string;
+          entity_id?: string | null;
+          action: string;
+          old_value?: Json | null;
+          new_value?: Json | null;
+          reason_code?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<{
+          old_value: Json | null;
+          new_value: Json | null;
+        }>;
+        Relationships: [];
+      };
+      policy_configs: {
+        Row: {
+          id: string;
+          store_id: string | null;
+          overtime_daily_threshold: number;
+          double_time_daily_threshold: number;
+          overtime_weekly_threshold: number;
+          auto_clock_out_hours: number;
+          rounding_mode: string;
+          updated_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          store_id?: string | null;
+          overtime_daily_threshold?: number;
+          double_time_daily_threshold?: number;
+          overtime_weekly_threshold?: number;
+          auto_clock_out_hours?: number;
+          rounding_mode?: string;
+          updated_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<{
+          overtime_daily_threshold: number;
+          double_time_daily_threshold: number;
+          overtime_weekly_threshold: number;
+          auto_clock_out_hours: number;
+          rounding_mode: string;
+          updated_by: string | null;
+          updated_at: string;
         }>;
         Relationships: [];
       };

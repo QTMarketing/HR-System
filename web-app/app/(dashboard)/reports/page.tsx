@@ -21,12 +21,9 @@ const items = [
 export default function ReportsIndexPage() {
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Reports</h1>
-        <p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">
-          Payroll-focused summaries and drill-downs. Open a report for full tables and charts.
-        </p>
-      </div>
+      <p className="max-w-2xl text-sm text-[var(--text-secondary)]">
+        Payroll-focused summaries and drill-downs. Open a report for full tables and charts.
+      </p>
 
       <ul className="grid gap-4 md:grid-cols-2">
         {items.map((item) => {

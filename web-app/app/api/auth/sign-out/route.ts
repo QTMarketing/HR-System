@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { allowsDashboardWithoutAuth } from "@/lib/auth-gate";
 import { isMockMode } from "@/lib/data-mode";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -9,6 +10,7 @@ export async function POST(request: Request) {
     await supabase.auth.signOut();
   }
 
-  const redirectUrl = new URL("/login", request.url);
+  const nextPath = allowsDashboardWithoutAuth() ? "/overview" : "/login";
+  const redirectUrl = new URL(nextPath, request.url);
   return NextResponse.redirect(redirectUrl);
 }

@@ -1,69 +1,28 @@
 import { NextResponse } from "next/server";
 
-import { isMockMode } from "@/lib/data-mode";
+import { resolveApiDataAccess } from "@/lib/api-data-access";
 import { getMockTimeEntryOptions } from "@/lib/mock/time-tracking-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { EntryOption, TimeEntryOptions } from "@/lib/types/domain";
+import { getViewerScopedStores } from "@/lib/viewer-store-scope";
 
 export async function GET() {
   try {
-    if (isMockMode()) {
+    const access = await resolveApiDataAccess();
+    if (access.kind === "unauthorized") {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (access.kind === "mock") {
       return NextResponse.json({ data: getMockTimeEntryOptions() });
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { supabase, userId } = access;
 
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    const scope = await getViewerScopedStores(supabase, userId);
+    if (!scope.ok) {
+      return NextResponse.json({ error: scope.error }, { status: scope.status });
     }
 
-    const { data: roleRow, error: roleError } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    if (roleError || !roleRow) {
-      return NextResponse.json({ error: "Unable to resolve user role" }, { status: 403 });
-    }
-
-    const isAdmin = roleRow.role === "admin";
-
-    let stores: EntryOption[] = [];
-    if (isAdmin) {
-      const { data, error } = await supabase.from("stores").select("id, name").eq("is_active", true).order("name");
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-      stores = (data ?? []).map((store) => ({ id: store.id, label: store.name }));
-    } else {
-      const { data: assignmentRows, error } = await supabase
-        .from("user_store_assignments")
-        .select("store_id")
-        .eq("user_id", user.id);
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-
-      const storeIds = Array.from(new Set((assignmentRows ?? []).map((row) => row.store_id)));
-      if (storeIds.length > 0) {
-        const { data: storeRows, error: storeError } = await supabase
-          .from("stores")
-          .select("id, name")
-          .in("id", storeIds)
-          .eq("is_active", true);
-
-        if (storeError) {
-          return NextResponse.json({ error: storeError.message }, { status: 500 });
-        }
-
-        stores = (storeRows ?? []).map((store) => ({ id: store.id, label: store.name }));
-      }
-    }
+    const stores = scope.stores;
 
     const storeIds = Array.from(new Set(stores.map((store) => store.id)));
     if (storeIds.length === 0) {

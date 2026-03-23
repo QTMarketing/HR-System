@@ -1,7 +1,7 @@
 {
   "name": "web-app",
   "version": "1.0.0",
-  "description": "Employee Time Tracking Dashboard",
+  "description": "HR System — time, people, and approvals dashboard",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

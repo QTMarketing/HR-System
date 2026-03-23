@@ -26,12 +26,19 @@ const HourMixPie = dynamic(
 
 export default function OverviewPage() {
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-[var(--text-secondary)]">
-          Focus: approvals, flags, and payroll-ready hour visibility across stores.
-        </p>
-        <TimeEntryDialog />
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Operational snapshot
+          </p>
+          <p className="mt-1 max-w-xl text-sm text-[var(--text-secondary)]">
+            Exceptions, open shifts, and hours — then trends and activity below.
+          </p>
+        </div>
+        <div className="shrink-0">
+          <TimeEntryDialog />
+        </div>
       </div>
 
       <KpiCards />

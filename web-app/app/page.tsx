@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
-import { isMockMode } from "@/lib/data-mode";
+import { allowsDashboardWithoutAuth } from "@/lib/auth-gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function Page() {
-  if (isMockMode()) {
+  if (allowsDashboardWithoutAuth()) {
     redirect("/overview");
   }
 

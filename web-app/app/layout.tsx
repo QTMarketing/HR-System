@@ -6,8 +6,8 @@ import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Employee Time Tracking Dashboard",
-  description: "PRD-aligned operations dashboard for multi-store time tracking",
+  title: "HR System",
+  description: "HR workspace for multi-store time, people, and approvals",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

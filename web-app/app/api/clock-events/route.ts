@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { isMockMode } from "@/lib/data-mode";
+import { resolveApiDataAccess } from "@/lib/api-data-access";
 import { applyMockClockEvent } from "@/lib/mock/time-tracking-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const clockEventSchema = z.object({
   employeeId: z.uuid(),
@@ -17,19 +16,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     const input = clockEventSchema.parse(body);
 
-    if (isMockMode()) {
+    const access = await resolveApiDataAccess();
+    if (access.kind === "unauthorized") {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    if (access.kind === "mock") {
       const result = applyMockClockEvent(input);
       return NextResponse.json(result);
     }
 
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
+    const supabase = access.supabase;
 
     const { data, error } = await supabase.rpc(
       "apply_clock_event",

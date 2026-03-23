@@ -3,7 +3,11 @@
 :root {
   --sidebar-bg: #22182d;
   --sidebar-hover: #2f2140;
+  /* Strong legacy fill — prefer --sidebar-active-soft + --sidebar-indicator in nav */
   --sidebar-active: #3c2a53;
+  /* Softer active row: recedes vs main content (KPIs/charts stay hero) */
+  --sidebar-active-soft: color-mix(in oklab, var(--sidebar-hover) 58%, var(--sidebar-bg));
+  --sidebar-indicator: color-mix(in oklab, var(--text-on-dark) 42%, transparent);
   --sidebar-ink: #f4ecfa;
 
   --board-bg: #f4efe8;

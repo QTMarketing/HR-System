@@ -87,12 +87,17 @@ export function TimeEntryDialog() {
       form.reset();
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.timeEntries });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.timeEntries }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardKpis }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.hourMix }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardCharts }),
+      ]);
     },
   });
 
   const onSubmit = async (values: TimeEntryForm) => {
-    toast.info("Submitting time entry...");
     await mutation.mutateAsync({
       employeeId: values.employeeId,
       storeId: values.storeId,
@@ -170,7 +175,7 @@ export function TimeEntryDialog() {
                 {...form.register("notes")}
                 rows={3}
                 className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:border-[var(--accent)]"
-                placeholder="Reason code / manager notes"
+                placeholder="Optional note for the record"
               />
             </div>
 

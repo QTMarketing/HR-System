@@ -20,6 +20,7 @@ import { fetchHourMixReport } from "@/lib/api/time-entries";
 import { queryKeys } from "@/lib/query-keys";
 import { TimeEntryStatus } from "@/lib/types/domain";
 
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 const SEGMENT_COLORS = ["var(--secondary)", "var(--accent)", "var(--info)"] as const;
@@ -55,7 +56,7 @@ function StatusBadge({ status }: { status: TimeEntryStatus }) {
 
 export function HourMixReportView() {
   const [activeSlice, setActiveSlice] = useState<number | null>(null);
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: queryKeys.hourMixReport,
     queryFn: fetchHourMixReport,
   });
@@ -76,10 +77,18 @@ export function HourMixReportView() {
   if (isError || !data) {
     return (
       <Card className="border-[var(--danger)] bg-[color-mix(in_oklab,var(--danger)_8%,var(--surface))] p-6 text-sm text-[var(--danger)]">
-        Could not load this report.{" "}
-        <Link href="/overview" className="font-medium underline underline-offset-2">
-          Back to overview
-        </Link>
+        <p>Could not load this report.</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button type="button" variant="outline" className="h-9 text-xs" disabled={isFetching} onClick={() => refetch()}>
+            {isFetching ? "Retrying…" : "Try again"}
+          </Button>
+          <Link
+            href="/overview"
+            className="inline-flex h-9 items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-xs font-medium text-[var(--text-primary)] hover:bg-[var(--surface-soft)]"
+          >
+            Back to overview
+          </Link>
+        </div>
       </Card>
     );
   }
@@ -101,7 +110,6 @@ export function HourMixReportView() {
             <span className="mx-1.5 text-[var(--border)]">/</span>
             <span className="text-[var(--text-secondary)]">Hour mix</span>
           </nav>
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">Hour mix report</h1>
           <p className="mt-1 max-w-2xl text-sm text-[var(--text-secondary)]">{data.scopeDescription}</p>
           <p className="mt-2 text-xs text-[var(--text-muted)]">Generated {generatedLabel}</p>
         </div>

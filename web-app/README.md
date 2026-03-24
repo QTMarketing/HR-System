@@ -16,7 +16,7 @@ Open [http://localhost:3000](http://localhost:3000) (default port; use the URL s
 
 ## Vercel
 
-This folder is the Next.js root. In the Vercel project, set **Root Directory** to **`web-app`** (not the repository root). See the [root README](../README.md#deploy-on-vercel) for the full checklist.
+This folder is the Next.js root. In the Vercel project, set **Root Directory** to **`web-app`** (not the repository root). **Framework Preset** must be **Next.js**; leave **Output Directory** empty (never `public` unless you know you need a static export). [`vercel.json`](./vercel.json) in this folder sets `"framework": "nextjs"`. See the [root README](../README.md#deploy-on-vercel) for the full checklist.
 
 ## Documentation
 

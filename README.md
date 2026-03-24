@@ -14,6 +14,13 @@ If the live URL shows **404: NOT_FOUND** (Vercel’s generic error), the project
 
 Vercel should detect **Next.js**; leave **Build Command** and **Output** as defaults (`next build` / managed by Vercel).
 
+If the build fails with **“No Output Directory named public”**, the project is not using the Next.js preset (Vercel is looking for a static `public` folder). Fix it:
+
+- **Settings** → **General** → **Framework Preset** → **Next.js** (not “Other”).
+- **Settings** → **Build and Deployment** → open **Build** settings → clear **Output Directory** (leave blank so Vercel uses the Next.js default — do **not** set `public` or `.next` manually).
+
+The repo includes [`web-app/vercel.json`](./web-app/vercel.json) with `"framework": "nextjs"` to reinforce correct detection when Root Directory is `web-app`.
+
 4. **Settings** → **Environment Variables**: add the same keys you use locally (at minimum `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` if you use `DATA_MODE=api`). For a quick public demo you can set **`DATA_MODE=mock`** so the dashboard works without Supabase.
 
 ## Rename this repository on GitHub (optional)
